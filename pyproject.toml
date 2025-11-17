@@ -6,7 +6,10 @@ authors = ["Dimitri Falco <dimitri.falco@quantivly.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.9"
+torch = "1.12.1"
+torch-geometric = "2.5.0"
+pandas = "^2.3.3"
 
 
 [build-system]
