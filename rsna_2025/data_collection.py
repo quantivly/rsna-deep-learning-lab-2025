@@ -5,7 +5,8 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 
 
-class DicomDataCollection:
+class DataCollection:
+    """Class for loading and processing clinical metadata, radiomic features, and gene assay data."""
     def __init__(self, metadata_path: str, radiomic_path: str, gene_assay_path: str):
         self.metadata = pd.read_csv(metadata_path)
         self.radiomic = pd.read_csv(radiomic_path)
