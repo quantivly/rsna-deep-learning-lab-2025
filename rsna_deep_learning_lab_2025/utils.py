@@ -4,7 +4,7 @@ import numpy as np
 import plotly.express as px
 
 from torch_geometric.data import HeteroData
-from rsna_2025.data_collection import DataCollection
+from rsna_deep_learning_lab_2025.data_collection import DataCollection
 
 class DataViewer:
     """Utility class for analyzing and visualizing the heterogeneous graph data and raw features."""

@@ -1,8 +1,8 @@
 import torch
 import torch.nn.functional as F
 from torch_geometric.data import HeteroData
-from rsna_2025.model import PatientRepresentationGNN, graph_view_augment, contrastive_loss
-from rsna_2025.data_collection import DataCollection
+from rsna_deep_learning_lab_2025.model import PatientRepresentationGNN, graph_view_augment, contrastive_loss
+from rsna_deep_learning_lab_2025.data_collection import DataCollection
 
 ##### Utility Functions #####
 
