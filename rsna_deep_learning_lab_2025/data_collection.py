@@ -7,7 +7,8 @@ from sklearn.compose import ColumnTransformer
 
 class DataCollection:
     """Class for loading and processing clinical metadata, radiomic features, and gene assay data."""
-    def __init__(self, metadata_path: str, radiomic_path: str, gene_assay_path: str):
+    def __init__(self, metadata_path: str, radiomic_path: str, gene_assay_path: str, supervised: bool=False):
+        self.supervised = supervised
         self.metadata = pd.read_csv(metadata_path)
         self.radiomic = pd.read_csv(radiomic_path)
         self.gene_assay = pd.read_csv(gene_assay_path)
@@ -58,6 +59,20 @@ class DataCollection:
         return scaler.fit_transform(features.values)
     
     def get_gene_assay_features(self, columns_to_drop: list=['CLID', 'Unnamed: 16', 'Unnamed: 17', 'Unnamed: 18']):
+        feature_cols = [c for c in self.gene_assay.columns if c not in columns_to_drop]
+        if self.supervised:
+            feature_cols.remove('Pam50.Call')  # Include target column if supervised
+        numeric_cols = self.gene_assay[feature_cols].select_dtypes(include=[np.number]).columns.tolist()
+        categorical_cols = list(set(feature_cols) - set(numeric_cols))
+        preprocessor = ColumnTransformer(
+            transformers=[
+                ('num', StandardScaler(), numeric_cols),
+                ('cat', OneHotEncoder(handle_unknown='ignore', sparse_output=False), categorical_cols)
+            ]
+        )
+        return preprocessor.fit_transform(self.gene_assay[feature_cols])
+    
+    def get_patient_metadata_features(self, columns_to_drop: list=['bcr_patient_barcode', 'patient_id', 'ajcc_neoplasm_disease_stage']):
         feature_cols = [c for c in self.metadata.columns if c not in columns_to_drop]
         numeric_cols = self.metadata[feature_cols].select_dtypes(include=[np.number]).columns.tolist()
         categorical_cols = list(set(feature_cols) - set(numeric_cols))
@@ -69,14 +84,15 @@ class DataCollection:
         )
         return preprocessor.fit_transform(self.metadata[feature_cols])
     
-    def get_patient_metadata_features(self, columns_to_drop: list=['bcr_patient_barcode', 'patient_id']):
-        feature_cols = [c for c in self.metadata.columns if c not in columns_to_drop]
-        numeric_cols = self.metadata[feature_cols].select_dtypes(include=[np.number]).columns.tolist()
-        categorical_cols = list(set(feature_cols) - set(numeric_cols))
-        preprocessor = ColumnTransformer(
-            transformers=[
-                ('num', StandardScaler(), numeric_cols),
-                ('cat', OneHotEncoder(handle_unknown='ignore', sparse_output=False), categorical_cols)
-            ]
-        )
-        return preprocessor.fit_transform(self.metadata[feature_cols])
+    def get_target(self, target_column: str='ajcc_neoplasm_disease_stage'):
+        target_series = self.metadata[target_column]
+        target_mapping = {stage: idx for idx, stage in enumerate(sorted(target_series.dropna().unique()))}
+        targets = target_series.map(target_mapping).fillna(-1).astype(int).values
+        return targets
+    
+    def get_gene_target(self, target_column: str='Pam50.Call'):
+        target_series = self.gene_assay[target_column]
+        target_mapping = {stage: idx for idx, stage in enumerate(sorted(target_series.dropna().unique()))}
+        targets = target_series.map(target_mapping).fillna(-1).astype(int).values
+        return targets
+    
