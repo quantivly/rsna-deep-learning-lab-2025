@@ -7,7 +7,7 @@ from sklearn.compose import ColumnTransformer
 
 class DataCollection:
     """Class for loading and processing clinical metadata, radiomic features, and gene assay data."""
-    def __init__(self, metadata_path: str, radiomic_path: str, gene_assay_path: str, supervised: bool=False):
+    def __init__(self, metadata_path: str, radiomic_path: str, gene_assay_path: str, supervised: bool=True):
         self.supervised = supervised
         self.metadata = pd.read_csv(metadata_path)
         self.radiomic = pd.read_csv(radiomic_path)
@@ -72,8 +72,10 @@ class DataCollection:
         )
         return preprocessor.fit_transform(self.gene_assay[feature_cols])
     
-    def get_patient_metadata_features(self, columns_to_drop: list=['bcr_patient_barcode', 'patient_id', 'ajcc_neoplasm_disease_stage']):
+    def get_patient_metadata_features(self, columns_to_drop: list=['bcr_patient_barcode', 'patient_id']):
         feature_cols = [c for c in self.metadata.columns if c not in columns_to_drop]
+        if self.supervised:
+            feature_cols.remove('ajcc_neoplasm_disease_stage')  # Include target column if supervised
         numeric_cols = self.metadata[feature_cols].select_dtypes(include=[np.number]).columns.tolist()
         categorical_cols = list(set(feature_cols) - set(numeric_cols))
         preprocessor = ColumnTransformer(
