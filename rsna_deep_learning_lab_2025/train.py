@@ -55,8 +55,8 @@ def load_data(metadata_path='./data/clinical_metadata_TCGA.csv', radiomic_path='
         'data_collection': data_collection
     }
 
-def load_model_and_optimizer(data, lr=1e-4):
-    model = PatientRepresentationGNN(data)
+def load_model_and_optimizer(data, hidden_dim=64, out_dim=32,lr=1e-4):
+    model = PatientRepresentationGNN(data, hidden_dim=hidden_dim, out_dim=out_dim)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     return model, optimizer
 

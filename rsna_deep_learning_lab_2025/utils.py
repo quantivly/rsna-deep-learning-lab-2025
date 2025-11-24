@@ -88,8 +88,3 @@ class DataViewer:
         graph_norm = torch.nn.functional.normalize(graph)
         Sim_graph = (graph_norm @ graph_norm.T).cpu().numpy()
         return Sim_graph
-    
-
-    
-
-    
