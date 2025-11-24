@@ -19,12 +19,12 @@ def build_patient_similarity_edges(patient_features, k=10):
 
         return torch.stack([row, col], dim=0)
 
-def load_data(metadata_path='./data/clinical_metadata_TCGA.csv', radiomic_path='./data/radiomic_features_TCGA.csv', gene_assay_path='./data/multi_gene_assays.csv', supervised: bool=False):
+def load_data(metadata_path='./data/clinical_metadata_TCGA.csv', radiomic_path='./data/radiomic_features_TCGA.csv', gene_assay_path='./data/multi_gene_assays.csv'):
     data_collection = DataCollection(
         metadata_path=metadata_path,
         radiomic_path=radiomic_path,
         gene_assay_path=gene_assay_path,
-        supervised=supervised
+        supervised=True 
     )
     # Initialize HeteroData object
     data = HeteroData()
@@ -52,9 +52,8 @@ def load_data(metadata_path='./data/clinical_metadata_TCGA.csv', radiomic_path='
     data['gene', 'to', 'patient'].edge_index = torch.tensor([gene_src, gene_dst], dtype=torch.long)
     
     # Add target labels for supervised tasks
-    if supervised:
-        data.y_gene = torch.tensor(data_collection.get_gene_target(), dtype=torch.long)
-        data.y = torch.tensor(data_collection.get_target(), dtype=torch.long)
+    data.y_gene = torch.tensor(data_collection.get_gene_target(), dtype=torch.long)
+    data.y = torch.tensor(data_collection.get_target(), dtype=torch.long)
     
     return {
         'data': data,
