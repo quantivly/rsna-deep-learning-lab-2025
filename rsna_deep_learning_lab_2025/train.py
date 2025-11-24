@@ -24,7 +24,6 @@ def load_data(metadata_path='./data/clinical_metadata_TCGA.csv', radiomic_path='
         metadata_path=metadata_path,
         radiomic_path=radiomic_path,
         gene_assay_path=gene_assay_path,
-        supervised=True 
     )
     # Initialize HeteroData object
     data = HeteroData()

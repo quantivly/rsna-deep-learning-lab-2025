@@ -7,8 +7,8 @@ from sklearn.compose import ColumnTransformer
 
 class DataCollection:
     """Class for loading and processing clinical metadata, radiomic features, and gene assay data."""
-    def __init__(self, metadata_path: str, radiomic_path: str, gene_assay_path: str, supervised: bool=True):
-        self.supervised = supervised
+    def __init__(self, metadata_path: str, radiomic_path: str, gene_assay_path: str):
+        self.supervised = True
         self.metadata = pd.read_csv(metadata_path)
         self.radiomic = pd.read_csv(radiomic_path)
         self.gene_assay = pd.read_csv(gene_assay_path)
