@@ -1,6 +1,7 @@
 import torch
 import torch.nn.functional as F
 import numpy as np
+import pandas as pd
 
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
@@ -8,6 +9,10 @@ from sklearn.metrics import accuracy_score, roc_auc_score
 
 from torch_geometric.data import HeteroData
 from rsna_deep_learning_lab_2025.data_collection import DataCollection
+
+def flatten_pairwise(simA, simB):
+      mask = ~np.eye(simA.shape[0], dtype=bool)
+      return simA[mask], simB[mask]
 
 class DataViewer:
     """Utility class for analyzing and visualizing the heterogeneous graph data and raw features."""
@@ -73,6 +78,68 @@ class DataViewer:
         return {
             'R': R,
             'patient_idx_with_radiomics': patient_idx_with_radiomics
+        }
+
+    def compute_all_similarities_from_radiomics(self, patient_embeddings):
+   
+        rad_info = self.fetch_connected_radiomic_features
+
+        #Get only relevant patient info
+        raw_patient_features = self.fetch_all_patient_features[rad_info['patient_idx_with_radiomics']]
+        patient_embeddings_filtered = patient_embeddings[rad_info['patient_idx_with_radiomics']]
+
+        #Get similarity matrix
+        sim_P = self.fetch_cosine_similarity(raw_patient_features)
+        sim_R = self.fetch_cosine_similarity(rad_info['R']) #'G' is the graph associated with genetic raw features
+        sim_E = self.fetch_cosine_similarity(patient_embeddings_filtered)
+        return {
+            'sim_P': sim_P,
+            'sim_R': sim_R,
+            'sim_E': sim_E
+        }
+    
+    def neighborhood_overlap_analysis(self, sim_P, sim_E, sim_Group, top_k=10):
+        K = top_k
+        N = sim_Group.shape[0]
+
+        # Compute top-K neighbors in each space
+        topk_E = np.argsort(-sim_E, axis=1)[:, 1:K+1]   # exclude self
+        topk_Group = np.argsort(-sim_Group, axis=1)[:, 1:K+1]
+        topk_P = np.argsort(-sim_P, axis=1)[:, 1:K+1]
+
+        # Compute overlap
+        overlaps_meta = []
+        for p in range(N):
+            overlap = len(set(topk_P[p]).intersection(topk_Group[p])) / K
+            overlaps_meta.append(overlap)
+
+        overlaps_embedding = []
+        for p in range(N):
+            overlap = len(set(topk_E[p]).intersection(topk_Group[p])) / K
+            overlaps_embedding.append(overlap)
+
+        #Combine overlaps and convert to DataFrame
+        overlaps = [[o,c] for el, c in [[overlaps_embedding, 'embedding'], [overlaps_meta, 'metadata_raw']] for o in el]
+        df = pd.DataFrame(overlaps, columns=['data', 'group'])
+        return df
+    
+    
+    def compute_all_similarities_from_genes(self, patient_embeddings):
+   
+        gene_info = self.fetch_connected_gene_features
+
+        #Get only relevant patient info
+        raw_patient_features = self.fetch_all_patient_features[gene_info['patient_idx_with_genes']]
+        patient_embeddings_filtered = patient_embeddings[gene_info['patient_idx_with_genes']]
+
+        #Get similarity matrix
+        sim_P = self.fetch_cosine_similarity(raw_patient_features)
+        sim_G = self.fetch_cosine_similarity(gene_info['G']) #'G' is the graph associated with genetic raw features
+        sim_E = self.fetch_cosine_similarity(patient_embeddings_filtered)
+        return {
+            'sim_P': sim_P,
+            'sim_G': sim_G,
+            'sim_E': sim_E
         }
     
     @property

@@ -1,37 +1,47 @@
 import torch
 import torch.nn.functional as F
+import torch.nn as nn
+import numpy as np
+
+
 from torch_geometric.data import HeteroData
 from rsna_deep_learning_lab_2025.model import PatientRepresentationGNN, graph_view_augment, contrastive_loss
 from rsna_deep_learning_lab_2025.data_collection import DataCollection
 
 ##### Utility Functions #####
 
-def build_patient_similarity_edges(patient_features, k=10):
-        # compute cosine similarity
-        sim = F.normalize(patient_features) @ F.normalize(patient_features).T
+def build_patient_similarity_edges(patient_features, k=10, threshold=None):
+    # compute cosine similarity
+    sim = F.normalize(patient_features) @ F.normalize(patient_features).T
+    sim.fill_diagonal_(0)  # remove self similarity
 
-        sim.fill_diagonal_(0)  # remove self similarity
-
+    if threshold is None:
+        # Original k-NN approach: force exactly k connections per patient
         topk = torch.topk(sim, k, dim=1).indices
-
         row = torch.arange(len(patient_features)).repeat_interleave(k)
         col = topk.reshape(-1)
+    else:
+        # Threshold approach: only connect patients above similarity threshold
+        edge_indices = (sim > threshold).nonzero(as_tuple=False)
+        row = edge_indices[:, 0]
+        col = edge_indices[:, 1]
 
-        return torch.stack([row, col], dim=0)
+    return torch.stack([row, col], dim=0)
 
-def load_data(metadata_path='./data/clinical_metadata_TCGA.csv', radiomic_path='./data/radiomic_features_TCGA.csv', gene_assay_path='./data/multi_gene_assays.csv'):
+def load_data(metadata_path='./data/clinical_metadata_TCGA.csv', radiomic_path='./data/radiomic_features_TCGA.csv', gene_assay_path='./data/multi_gene_assays.csv', threshold=None):
     data_collection = DataCollection(
         metadata_path=metadata_path,
         radiomic_path=radiomic_path,
         gene_assay_path=gene_assay_path,
     )
+    
     # Initialize HeteroData object
     data = HeteroData()
     
     # Add patient nodes and features
     patient_features = data_collection.get_patient_metadata_features()
     patient_features = torch.tensor(patient_features, dtype=torch.float)
-    pp_edges = build_patient_similarity_edges(patient_features, k=10)
+    pp_edges = build_patient_similarity_edges(patient_features, k=10, threshold=threshold)
     data['patient'].x = patient_features
     data['patient', 'similar', 'patient'].edge_index = pp_edges
     
@@ -102,7 +112,7 @@ class Trainer:
         print("Training complete.")
         self.model.eval()
         return losses
-
+    
     @property
     def get_patient_embeddings(self):
         self.model.eval()

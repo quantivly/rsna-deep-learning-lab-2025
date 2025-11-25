@@ -22,8 +22,7 @@ class DataCollection:
 
     @property
     def unique_patient_ids(self):
-        all_patient_ids = sorted(set(self.metadata['bcr_patient_barcode'].to_list())
-                                 | set(self.radiomic['patient_id'].to_list())
+        all_patient_ids = sorted(set(self.radiomic['patient_id'].to_list())
                                  | set(self.gene_assay['CLID'].to_list()))
         return all_patient_ids
     
